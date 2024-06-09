@@ -1,6 +1,8 @@
 use iced::executor;
 use iced::{Application, Command, Element, Settings, Theme};
 
+use iced::widget::image;
+
 const IMG_H: usize = 100;
 const IMG_W: usize = 100;
 const IMG_TEST1: [u8; 4 * IMG_H * IMG_W] = [100; 4 * IMG_H * IMG_W];
