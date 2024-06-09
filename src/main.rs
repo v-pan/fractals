@@ -1,6 +1,4 @@
 use iced::executor;
-use iced::widget::image::{self, Handle};
-use iced::widget::Image;
 use iced::{Application, Command, Element, Settings, Theme};
 
 const IMG_H: usize = 100;
