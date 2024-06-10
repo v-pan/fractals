@@ -5,7 +5,7 @@ use iced::{Application, Command, Element, Settings, Theme};
 use iced::widget::{button, column, container, image, row, text, text_input};
 
 const DEFAULT_IMG_H: usize = 750;
-const DEFAULT_IMG_W: usize = 750;
+const DEFAULT_IMG_W: usize = 1000;
 const DEFAULT_CAMERA_POSITION: Vec3 = vec3(0.0, 0.0, 5.0);
 const DEFAULT_CAMERA_DIRECTION: Vec3 = vec3(0.0, 0.0, -1.0);
 const DEFAULT_MAX_STEPS: i16 = 100;
@@ -189,10 +189,14 @@ impl Application for App {
 }
 
 fn trace_image(image_params: ImageParameters) -> Vec<u8> {
-    let image_width = image_params.image_width;
-    let image_height = image_params.image_height;
+    let ImageParameters {
+        image_width,
+        image_height,
+        camera_position,
+        ..
+    } = image_params;
 
-    let camera_position = image_params.camera_position;
+    let aspect_ratio: f32 = image_width as f32 / image_height as f32;
 
     // For now, "texture" grid will be 1units x 1units, "located" 1unit in front of the camera
     let camera_direction = DEFAULT_CAMERA_DIRECTION;
@@ -200,13 +204,12 @@ fn trace_image(image_params: ImageParameters) -> Vec<u8> {
     let mut buffer: Vec<u8> = Vec::with_capacity(4 * image_width * image_height);
 
     // Divide up the grid into rays
-    for i in 0..image_width {
-        for j in 0..image_height {
-            let direction = camera_direction + vec3(
-                (i as i32 - image_width as i32/2) as f32 / image_width as f32,
-                (j as i32 - image_height as i32/2) as f32 / image_height as f32,
-                0.0,
-            );
+    for j in (0..image_height).rev() {
+        for i in 0..image_width {
+            let x: f32 = ((i as f32 / image_width as f32) - 0.5) * aspect_ratio;
+            let y: f32 = (j as f32 / image_height as f32) - 0.5;
+
+            let direction = camera_direction + vec3(x, y, 0.0);
 
             // Trace the ray, compute a colour, store in buffer
             let result = trace(camera_position, direction, image_params.max_steps, image_params.min_distance);
@@ -215,6 +218,12 @@ fn trace_image(image_params: ImageParameters) -> Vec<u8> {
             buffer.push((result * 255.0) as u8);
             buffer.push((result * 255.0) as u8);
             buffer.push(255);
+
+            // Draw UV coords
+            // buffer.push((x * 255.0) as u8);
+            // buffer.push((y * 255.0) as u8);
+            // buffer.push(0);
+            // buffer.push(255);
         }
     }
 
