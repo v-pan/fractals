@@ -6,8 +6,8 @@ use iced::widget::{button, column, image, row, text, text_input};
 
 const DEFAULT_IMG_H: usize = 750;
 const DEFAULT_IMG_W: usize = 1000;
-const DEFAULT_CAMERA_POSITION: Vec3 = vec3(0.0, 0.0, 3.0);
-const DEFAULT_CAMERA_DIRECTION: Vec3 = vec3(0.0, 0.0, -1.0);
+const DEFAULT_CAMERA_POSITION: Vec3 = vec3(3.0, 0.0, 0.0);
+const DEFAULT_CAMERA_DIRECTION: Vec3 = vec3(-1.0, 0.0, 0.0);
 const DEFAULT_MAX_STEPS: i16 = 1000;
 const DEFAULT_MIN_DISTANCE: f32 = 0.001;
 const DEFAULT_MAX_DISTANCE: f32 = 1000.0;
@@ -194,13 +194,16 @@ fn trace_image(image_params: ImageParameters) -> Vec<u8> {
         image_width,
         image_height,
         camera_position,
+        camera_direction,
         ..
     } = image_params;
 
     let aspect_ratio: f32 = image_width as f32 / image_height as f32;
 
-    // For now, "texture" grid will be 1units x 1units, "located" 1unit in front of the camera
-    let camera_direction = DEFAULT_CAMERA_DIRECTION;
+    // let camera_direction = DEFAULT_CAMERA_DIRECTION;
+    let camera_direction_normalised = camera_direction.normalize();
+    let uv_x = camera_direction_normalised.cross(vec3(0.0, 0.0, 1.0));
+    let uv_y: Vec3 = uv_x.cross(camera_direction_normalised);
 
     let mut buffer: Vec<u8> = Vec::with_capacity(4 * image_width * image_height);
 
@@ -210,10 +213,10 @@ fn trace_image(image_params: ImageParameters) -> Vec<u8> {
             let x: f32 = ((i as f32 / image_width as f32) - 0.5) * aspect_ratio;
             let y: f32 = (j as f32 / image_height as f32) - 0.5;
 
-            let direction = camera_direction + vec3(x, y, 0.0);
+            let ray_direction = camera_direction + (x * uv_x) + (y * uv_y);
 
             // Trace the ray, compute a colour, store in buffer
-            let result = trace(camera_position, direction, image_params.max_steps, image_params.min_distance);
+            let result = trace(camera_position, ray_direction, image_params.max_steps, image_params.min_distance);
 
             buffer.push((result * 255.0) as u8);
             buffer.push((result * 255.0) as u8);
