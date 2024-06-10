@@ -191,6 +191,7 @@ impl Application for App {
 fn trace_image(image_params: ImageParameters) -> Vec<u8> {
     let image_width = image_params.image_width;
     let image_height = image_params.image_height;
+
     let camera_position = image_params.camera_position;
 
     // For now, "texture" grid will be 1units x 1units, "located" 1unit in front of the camera
@@ -237,8 +238,8 @@ fn trace(from: Vec3, direction: Vec3, max_steps: i16, min_distance: f32) -> f32{
 }
 
 fn sdf(point: Vec3) -> f32 {
-    let x = point.x % 1.0;
-    let y = point.y % 1.0;
+    let x = point.x.signum() * (point.x % 1.0);
+    let y = point.y.signum() * (point.y % 1.0);
 
     let instance = vec3(x, y, point.z) - vec3(0.5, 0.5, 0.5);
 
