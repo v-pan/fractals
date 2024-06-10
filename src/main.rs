@@ -10,6 +10,7 @@ const DEFAULT_CAMERA_POSITION: Vec3 = vec3(0.0, 0.0, 5.0);
 const DEFAULT_CAMERA_DIRECTION: Vec3 = vec3(0.0, 0.0, -1.0);
 const DEFAULT_MAX_STEPS: i16 = 100;
 const DEFAULT_MIN_DISTANCE: f32 = 0.0001;
+const DEFAULT_MAX_DISTANCE: f32 = 1000.0;
 
 pub fn main() -> iced::Result {
     App::run(Settings::default())
@@ -232,10 +233,13 @@ fn trace_image(image_params: ImageParameters) -> Vec<u8> {
 
 fn trace(from: Vec3, direction: Vec3, max_steps: i16, min_distance: f32) -> f32{
     let mut total_distance: f32 = 0.0;
-    
+
     for step in 0..max_steps {
         let current_point: Vec3 = from + (total_distance * direction);
         let distance = sdf(current_point);
+
+        if distance > DEFAULT_MAX_DISTANCE { break; }
+
         total_distance += distance;
 
         if distance < min_distance {
