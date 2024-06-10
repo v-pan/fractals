@@ -1,15 +1,15 @@
 use glam::{vec3, Vec3};
-use iced::{alignment, executor, Length};
+use iced::{executor, Length};
 use iced::{Application, Command, Element, Settings, Theme};
 
-use iced::widget::{button, column, container, image, row, text, text_input};
+use iced::widget::{button, column, image, row, text, text_input};
 
 const DEFAULT_IMG_H: usize = 750;
 const DEFAULT_IMG_W: usize = 1000;
-const DEFAULT_CAMERA_POSITION: Vec3 = vec3(0.0, 0.0, 5.0);
+const DEFAULT_CAMERA_POSITION: Vec3 = vec3(0.0, 0.0, 3.0);
 const DEFAULT_CAMERA_DIRECTION: Vec3 = vec3(0.0, 0.0, -1.0);
-const DEFAULT_MAX_STEPS: i16 = 100;
-const DEFAULT_MIN_DISTANCE: f32 = 0.0001;
+const DEFAULT_MAX_STEPS: i16 = 1000;
+const DEFAULT_MIN_DISTANCE: f32 = 0.001;
 const DEFAULT_MAX_DISTANCE: f32 = 1000.0;
 
 pub fn main() -> iced::Result {
@@ -236,7 +236,7 @@ fn trace(from: Vec3, direction: Vec3, max_steps: i16, min_distance: f32) -> f32{
 
     for step in 0..max_steps {
         let current_point: Vec3 = from + (total_distance * direction);
-        let distance = sdf(current_point);
+        let distance = sierpinsky_sdf(current_point);
 
         if distance > DEFAULT_MAX_DISTANCE { break; }
 
@@ -250,7 +250,50 @@ fn trace(from: Vec3, direction: Vec3, max_steps: i16, min_distance: f32) -> f32{
     return 0.0;
 }
 
-fn sdf(point: Vec3) -> f32 {
+fn sierpinsky_sdf(point: Vec3) -> f32 {
+    let max_iterations = 10;
+    let scale = 2.0;
+
+    let mut point = point;
+
+    let a1: Vec3 = vec3(1.0,1.0,1.0);
+	let a2: Vec3 = vec3(-1.0,-1.0,1.0);
+	let a3: Vec3 = vec3(1.0,-1.0,-1.0);
+	let a4: Vec3 = vec3(-1.0,1.0,-1.0);
+	let mut c: Vec3;
+
+    let mut d = 0.0;
+    let mut dist = 0.0;
+
+    for step in 0..max_iterations {
+        c = a1;
+        dist = (point - a1).length();
+        
+        d = (point - a2).length();
+        if d < dist {
+            c = a2;
+            dist = d;
+        }
+
+        d = (point - a3).length();
+        if d < dist {
+            c = a3;
+            dist = d;
+        }
+
+        d = (point - a4).length();
+        if d < dist {
+            c = a4;
+            dist = d;
+        }
+
+        point = scale * point - c*(scale - 1.0);
+    }
+
+    return point.length() * scale.powf(-max_iterations as f32);
+}
+
+fn spheres_sdf(point: Vec3) -> f32 {
     let x = point.x.signum() * (point.x % 1.0);
     let y = point.y.signum() * (point.y % 1.0);
 
