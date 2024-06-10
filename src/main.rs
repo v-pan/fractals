@@ -4,8 +4,12 @@ use iced::{Application, Command, Element, Settings, Theme};
 
 use iced::widget::{button, column, container, image, row, text, text_input};
 
-const IMG_H: usize = 750;
-const IMG_W: usize = 750;
+const DEFAULT_IMG_H: usize = 750;
+const DEFAULT_IMG_W: usize = 750;
+const DEFAULT_CAMERA_POSITION: Vec3 = vec3(0.0, 0.0, 5.0);
+const DEFAULT_CAMERA_DIRECTION: Vec3 = vec3(0.0, 0.0, -1.0);
+const DEFAULT_MAX_STEPS: i16 = 100;
+const DEFAULT_MIN_DISTANCE: f32 = 0.0001;
 
 pub fn main() -> iced::Result {
     App::run(Settings::default())
@@ -24,12 +28,12 @@ struct ImageParameters {
 impl Default for ImageParameters {
     fn default() -> Self {
         ImageParameters {
-            image_height: IMG_H,
-            image_width: IMG_W,
-            camera_position: vec3(0.0, 0.0, 5.0),
-            camera_direction: vec3(0.0, 0.0, -1.0),
-            max_steps: 100,
-            min_distance: 0.00001
+            image_height: DEFAULT_IMG_H,
+            image_width: DEFAULT_IMG_W,
+            camera_position: DEFAULT_CAMERA_POSITION,
+            camera_direction: DEFAULT_CAMERA_DIRECTION,
+            max_steps: DEFAULT_MAX_STEPS,
+            min_distance: DEFAULT_MIN_DISTANCE,
         }
     }
 }
@@ -72,7 +76,7 @@ impl Application for App {
     fn new(_flags: ()) -> (App, Command<Self::Message>) {
         (App { 
             state: State {
-                pixels: vec![0; 4 * IMG_W * IMG_H],
+                pixels: vec![0; 4 * DEFAULT_IMG_W * DEFAULT_IMG_H],
                 ..State::default()
             } 
         }, Command::none())
@@ -184,16 +188,13 @@ impl Application for App {
     }
 }
 
-const MAX_STEPS: i16 = 100;
-const MIN_DISTANCE: f32 = 0.0001;
-
 fn trace_image(image_params: ImageParameters) -> Vec<u8> {
     let image_width = image_params.image_width;
     let image_height = image_params.image_height;
     let camera_position = image_params.camera_position;
 
     // For now, "texture" grid will be 1units x 1units, "located" 1unit in front of the camera
-    let camera_direction = vec3(0.0, 0.0, -1.0);
+    let camera_direction = DEFAULT_CAMERA_DIRECTION;
 
     let mut buffer: Vec<u8> = Vec::with_capacity(4 * image_width * image_height);
 
