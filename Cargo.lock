@@ -754,6 +754,7 @@ checksum = "aa9a19cbb55df58761df49b23516a86d432839add4af60fc256da840f66ed35b"
 name = "fractals"
 version = "0.1.0"
 dependencies = [
+ "glam 0.27.0",
  "iced",
 ]
 
@@ -894,6 +895,12 @@ name = "glam"
 version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "151665d9be52f9bb40fc7966565d39666f2d1e69233571b71b87791c7e0528b3"
+
+[[package]]
+name = "glam"
+version = "0.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e05e7e6723e3455f4818c7b26e855439f7546cf617ef669d1adedb8669e5cb9"
 
 [[package]]
 name = "glow"
@@ -1059,7 +1066,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d7e6bbd197f311ed3d8b71651876b0ce01318fde52cda862a9a7a4373c9b930"
 dependencies = [
  "bitflags 2.5.0",
- "glam",
+ "glam 0.25.0",
  "log",
  "num-traits",
  "palette",
@@ -1168,7 +1175,7 @@ dependencies = [
  "bitflags 2.5.0",
  "bytemuck",
  "futures",
- "glam",
+ "glam 0.25.0",
  "glyphon",
  "guillotiere",
  "iced_graphics",
