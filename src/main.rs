@@ -6,14 +6,30 @@ use iced::widget::{button, column, image, row, text, text_input};
 
 const DEFAULT_IMG_H: usize = 750;
 const DEFAULT_IMG_W: usize = 1000;
-const DEFAULT_CAMERA_POSITION: Vec3 = vec3(3.0, 0.0, 0.0);
-const DEFAULT_CAMERA_DIRECTION: Vec3 = vec3(-1.0, 0.0, 0.0);
-const DEFAULT_MAX_STEPS: i16 = 1000;
-const DEFAULT_MIN_DISTANCE: f32 = 0.001;
+const DEFAULT_CAMERA_POSITION: Vec3 = vec3(3.0, 0.0, 5.0);
+const DEFAULT_CAMERA_DIRECTION: Vec3 = vec3(-1.0, 0.0, -1.0);
+const DEFAULT_LIGHT: Light = Light {
+    position: vec3(0.0, 0.0, 30.0),
+    diffuse_colour: (255, 255, 255),
+    diffuse_power: 30.0 * 30.0,
+    specular_colour: (255, 255, 0),
+    specular_power: 30.0 * 30.0,
+};
+const DEFAULT_MAX_STEPS: i16 = 10000;
+const DEFAULT_MIN_DISTANCE: f32 = 0.0001;
 const DEFAULT_MAX_DISTANCE: f32 = 1000.0;
+const DEFAULT_NORMAL_SAMPLING_DISTANCE: f32 = DEFAULT_MIN_DISTANCE / 10.0;
 
 pub fn main() -> iced::Result {
     App::run(Settings::default())
+}
+
+struct Light {
+    position: Vec3,
+    diffuse_colour: (u8, u8, u8),
+    diffuse_power: f32,
+    specular_colour: (u8, u8, u8),
+    specular_power: f32,
 }
 
 #[derive(Clone)]
@@ -216,11 +232,12 @@ fn trace_image(image_params: ImageParameters) -> Vec<u8> {
             let ray_direction = camera_direction + (x * uv_x) + (y * uv_y);
 
             // Trace the ray, compute a colour, store in buffer
-            let result = trace(camera_position, ray_direction, image_params.max_steps, image_params.min_distance);
+            let result = trace(camera_position, ray_direction, image_params.max_steps, image_params.min_distance, DEFAULT_NORMAL_SAMPLING_DISTANCE);
 
-            buffer.push((result * 255.0) as u8);
-            buffer.push((result * 255.0) as u8);
-            buffer.push((result * 255.0) as u8);
+            let light = DEFAULT_LIGHT;
+            buffer.push((result * light.diffuse_colour.0 as f32) as u8);
+            buffer.push((result * light.diffuse_colour.1 as f32) as u8);
+            buffer.push((result * light.diffuse_colour.2 as f32) as u8);
             buffer.push(255);
 
             // Draw UV coords
@@ -234,19 +251,54 @@ fn trace_image(image_params: ImageParameters) -> Vec<u8> {
     return buffer;
 }
 
-fn trace(from: Vec3, direction: Vec3, max_steps: i16, min_distance: f32) -> f32{
+fn trace(from: Vec3, direction: Vec3, max_steps: i16, min_distance: f32, normal_sampling_distance: f32) -> f32 {
+    let sdf = spheres_sdf;
     let mut total_distance: f32 = 0.0;
 
     for step in 0..max_steps {
         let current_point: Vec3 = from + (total_distance * direction);
-        let distance = sierpinsky_sdf(current_point);
+        let distance = sdf(current_point);
 
         if distance > DEFAULT_MAX_DISTANCE { break; }
 
         total_distance += distance;
 
         if distance < min_distance {
-            return 1.0 - Into::<f32>::into(step) / Into::<f32>::into(max_steps);
+            let light = DEFAULT_LIGHT;
+            
+            let light_direction = light.position - current_point;
+            let light_distance = light_direction.length_squared();
+
+            let light_direction = light_direction.normalize();
+
+            // Approximate normal with finite differences
+            let dx = normal_sampling_distance * Vec3::X;
+            let dy = normal_sampling_distance * Vec3::Y;
+            let dz = normal_sampling_distance * Vec3::Z;
+            let normal = vec3(
+                sdf(current_point + dx) - sdf(current_point - dx),
+                sdf(current_point + dy) - sdf(current_point - dy),
+                sdf(current_point + dz) - sdf(current_point - dz),
+            ).normalize();
+
+            // Find Lambertian reflectance
+            let lambertian = normal.dot(light_direction);
+
+            if lambertian > 0.0 {
+                // Phong shading
+                let direction = direction.normalize();
+                let reflected_ray = direction - (2.0 * direction.dot(normal) * normal);
+                
+                let diffuse_intensity = light_direction.dot(normal).clamp(0.0, 1.0);
+
+                let specular_angle = reflected_ray.dot(direction).clamp(0.0, 1.0);
+                let specular_intensity = specular_angle.powf(1.0);
+
+                return -step as f32 / max_steps as f32 + ((diffuse_intensity * light.diffuse_power) + (specular_intensity * light.specular_power)) / light_distance;
+            } else {
+                return 0.0;
+            }
+            // return 1.0 - Into::<f32>::into(step) / Into::<f32>::into(max_steps);
         }
     }
 
@@ -302,5 +354,5 @@ fn spheres_sdf(point: Vec3) -> f32 {
 
     let instance = vec3(x, y, point.z) - vec3(0.5, 0.5, 0.5);
 
-    return instance.length() - 0.4;
+    return instance.length() - 0.3;
 }
