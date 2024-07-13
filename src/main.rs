@@ -4,19 +4,19 @@ use iced::{Application, Command, Element, Settings, Theme};
 
 use iced::widget::{button, column, image, row, text, text_input};
 
-const DEFAULT_IMG_H: usize = 750;
-const DEFAULT_IMG_W: usize = 1000;
-const DEFAULT_CAMERA_POSITION: Vec3 = vec3(3.0, 0.0, 5.0);
-const DEFAULT_CAMERA_DIRECTION: Vec3 = vec3(-1.0, 0.0, -0.5);
+const DEFAULT_IMG_H: usize = 500;
+const DEFAULT_IMG_W: usize = 500;
+const DEFAULT_CAMERA_POSITION: Vec3 = vec3(20.0, 0.0, 0.0);
+const DEFAULT_CAMERA_DIRECTION: Vec3 = vec3(-1.0, 0.0, 0.0);
 const DEFAULT_LIGHT: Light = Light {
-    position: vec3(0.0, 0.0, 30.0),
+    position: vec3(20.0, 0.0, 0.0),
     diffuse_colour: (255, 255, 255),
-    diffuse_power: 30.0 * 30.0,
+    diffuse_power: 75.0,
     specular_colour: (255, 255, 255),
-    specular_power: 30.0 * 30.0,
+    specular_power: 75.0,
 };
 const DEFAULT_MAX_STEPS: i16 = 10000;
-const DEFAULT_MIN_DISTANCE: f32 = 0.0001;
+const DEFAULT_MIN_DISTANCE: f32 = 0.025;
 const DEFAULT_MAX_DISTANCE: f32 = 1000.0;
 const DEFAULT_NORMAL_SAMPLING_DISTANCE: f32 = DEFAULT_MIN_DISTANCE / 10.0;
 
@@ -24,6 +24,7 @@ pub fn main() -> iced::Result {
     App::run(Settings::default())
 }
 
+#[derive(Clone)]
 struct Light {
     position: Vec3,
     diffuse_colour: (u8, u8, u8),
@@ -39,7 +40,8 @@ struct ImageParameters {
     camera_position: Vec3,
     camera_direction: Vec3,
     max_steps: i16,
-    min_distance: f32,    
+    min_distance: f32,
+    light: Light
 }
 
 impl Default for ImageParameters {
@@ -51,6 +53,7 @@ impl Default for ImageParameters {
             camera_direction: DEFAULT_CAMERA_DIRECTION,
             max_steps: DEFAULT_MAX_STEPS,
             min_distance: DEFAULT_MIN_DISTANCE,
+            light: DEFAULT_LIGHT
         }
     }
 }
@@ -79,6 +82,13 @@ enum Message {
     CameraDirectionXChanged(String),
     CameraDirectionYChanged(String),
     CameraDirectionZChanged(String),
+
+    LightPositionXChanged(String),
+    LightPositionYChanged(String),
+    LightPositionZChanged(String),
+
+    LightDiffusePowerChanged(String),
+    LightSpecularPowerChanged(String),
 
     MaxStepsChanged(String),
     MinDistanceChanged(String),
@@ -149,6 +159,23 @@ impl Application for App {
             Message::MinDistanceChanged(new) => {
                 self.state.params.min_distance = new.parse().unwrap_or(self.state.params.min_distance);
             },
+
+            Message::LightPositionXChanged(new) => {
+                self.state.params.light.position.x = new.parse().unwrap_or(self.state.params.light.position.x);
+            },
+            Message::LightPositionYChanged(new) => {
+                self.state.params.light.position.y = new.parse().unwrap_or(self.state.params.light.position.y);
+            },
+            Message::LightPositionZChanged(new) => {
+                self.state.params.light.position.z = new.parse().unwrap_or(self.state.params.light.position.z);
+            },
+
+            Message::LightDiffusePowerChanged(new) => {
+                self.state.params.light.diffuse_power = new.parse().unwrap_or(self.state.params.light.diffuse_power);
+            },
+            Message::LightSpecularPowerChanged(new) => {
+                self.state.params.light.specular_power = new.parse().unwrap_or(self.state.params.light.specular_power);
+            },
         }
 
         Command::none()
@@ -170,8 +197,9 @@ impl Application for App {
             camera_direction,
             camera_position,
             max_steps,
-            min_distance
-        } = self.state.params;
+            min_distance,
+            light
+        } = &self.state.params;
 
         column![
             row![
@@ -197,6 +225,18 @@ impl Application for App {
                 text_input("Y", camera_direction.y.to_string().as_str()).on_input(|new| { Message::CameraDirectionYChanged(new) }),
                 text_input("Z", camera_direction.z.to_string().as_str()).on_input(|new| { Message::CameraDirectionZChanged(new) }),
             ].spacing(20).padding(5),
+            row![
+                text("Light Position"),
+                text_input("X", light.position.x.to_string().as_str()).on_input(|new| { Message::LightPositionXChanged(new) }),
+                text_input("Y", light.position.y.to_string().as_str()).on_input(|new| { Message::LightPositionYChanged(new) }),
+                text_input("Z", light.position.z.to_string().as_str()).on_input(|new| { Message::LightPositionZChanged(new) }),
+            ].spacing(20).padding(5),
+            row![
+                text("Diffuse power"),
+                text_input("Diffuse power", light.diffuse_power.to_string().as_str()).on_input(|new| { Message::LightDiffusePowerChanged(new) }),
+                text("Specular power"),
+                text_input("Specular power", light.specular_power.to_string().as_str()).on_input(|new| { Message::LightSpecularPowerChanged(new) }),
+            ].spacing(20).padding(5),
             button("Render").on_press(Message::RenderImage),
             image::viewer(handle),
         ]
@@ -211,6 +251,7 @@ fn trace_image(image_params: ImageParameters) -> Vec<u8> {
         image_height,
         camera_position,
         camera_direction,
+        light,
         ..
     } = image_params;
 
@@ -232,7 +273,7 @@ fn trace_image(image_params: ImageParameters) -> Vec<u8> {
             let ray_direction = camera_direction + (x * uv_x) + (y * uv_y);
 
             // Trace the ray, compute a colour, store in buffer
-            let result = trace(camera_position, ray_direction, image_params.max_steps, image_params.min_distance, DEFAULT_NORMAL_SAMPLING_DISTANCE);
+            let result = trace(camera_position, ray_direction, image_params.max_steps, image_params.min_distance, DEFAULT_NORMAL_SAMPLING_DISTANCE, light.clone());
 
             buffer.push((result.0) as u8);
             buffer.push((result.1) as u8);
@@ -250,8 +291,8 @@ fn trace_image(image_params: ImageParameters) -> Vec<u8> {
     return buffer;
 }
 
-fn trace(from: Vec3, direction: Vec3, max_steps: i16, min_distance: f32, normal_sampling_distance: f32) -> (f32, f32, f32) {
-    let sdf = spheres_sdf;
+fn trace(from: Vec3, direction: Vec3, max_steps: i16, min_distance: f32, normal_sampling_distance: f32, light: Light) -> (f32, f32, f32) {
+    let sdf = mandelbox_sdf;
     let mut total_distance: f32 = 0.0;
 
     for step in 0..max_steps {
@@ -263,8 +304,8 @@ fn trace(from: Vec3, direction: Vec3, max_steps: i16, min_distance: f32, normal_
         total_distance += distance;
 
         if distance < min_distance {
-            let light = DEFAULT_LIGHT;
-            
+            // let light = DEFAULT_LIGHT;
+
             let light_direction = light.position - current_point;
             let light_distance = light_direction.length_squared();
 
@@ -284,6 +325,7 @@ fn trace(from: Vec3, direction: Vec3, max_steps: i16, min_distance: f32, normal_
             let lambertian = normal.dot(light_direction);
 
             if lambertian > 0.0 {
+                // return flat_shading(step, max_steps);
                 return blinn_phong_shading(direction, light, light_direction, light_distance, normal, lambertian, step, max_steps);
             } else {
                 return (0.0, 0.0, 0.0);
@@ -293,6 +335,17 @@ fn trace(from: Vec3, direction: Vec3, max_steps: i16, min_distance: f32, normal_
     }
 
     return (0.0, 0.0, 0.0);
+}
+
+fn flat_shading(step: i16, max_steps: i16) -> (f32, f32, f32) {
+    // Fog
+    let fog = -step as f32 / max_steps as f32;
+
+    return (
+        fog,
+        fog,
+        fog,
+    );
 }
 
 fn phong_shading(direction: Vec3, light: Light, light_direction: Vec3, light_distance: f32, normal: Vec3, lambertian: f32, step: i16, max_steps: i16) -> (f32, f32, f32) {
@@ -334,7 +387,7 @@ fn blinn_phong_shading(direction: Vec3, light: Light, light_direction: Vec3, lig
 }
 
 fn sierpinsky_sdf(point: Vec3) -> f32 {
-    let max_iterations = 10;
+    let max_iterations = 1;
     let scale = 2.0;
 
     let mut point = point;
@@ -383,4 +436,42 @@ fn spheres_sdf(point: Vec3) -> f32 {
     let instance = vec3(x, y, point.z) - vec3(0.5, 0.5, 0.5);
 
     return instance.length() - 0.3;
+}
+
+fn mandelbox_sdf(offset: Vec3) -> f32 {
+    let max_iterations = 10;
+    let scale = 2.0;
+
+    let mut point = offset;
+    let mut dr: f32 = 1.0;
+
+    for step in 0..max_iterations {
+        point = box_fold(point, dr);
+        (point, dr) = sphere_fold(point, dr);
+
+        point = (scale * point) + offset;
+        dr = dr * scale.abs() + 1.0;
+    }
+    return point.length()/dr.abs();
+}
+
+fn box_fold(point: Vec3, dr: f32) -> Vec3 {
+    let fold_limit = 1.0;
+    return (2.0 * point.clamp(Vec3::splat(-fold_limit), Vec3::splat(fold_limit))) - point;
+}
+
+fn sphere_fold(point: Vec3, dr: f32) -> (Vec3, f32) {
+    let radius = point.length_squared();
+    let min_radius = 0.1;
+    let max_radius = 1.0;
+
+    if radius < min_radius {
+        let ratio = max_radius/min_radius;
+        return (point * ratio, ratio);
+    } else if radius < max_radius {
+        let ratio = max_radius/radius;
+        return (point * ratio, ratio);
+    } else {
+        return (point, dr);
+    }
 }
