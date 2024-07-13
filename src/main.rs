@@ -10,9 +10,9 @@ const DEFAULT_CAMERA_POSITION: Vec3 = vec3(3.0, 0.0, 5.0);
 const DEFAULT_CAMERA_DIRECTION: Vec3 = vec3(-1.0, 0.0, -0.5);
 const DEFAULT_LIGHT: Light = Light {
     position: vec3(0.0, 0.0, 30.0),
-    diffuse_colour: (0, 255, 0),
+    diffuse_colour: (255, 255, 255),
     diffuse_power: 30.0 * 30.0,
-    specular_colour: (255, 0, 0),
+    specular_colour: (255, 255, 255),
     specular_power: 30.0 * 30.0,
 };
 const DEFAULT_MAX_STEPS: i16 = 10000;
@@ -234,7 +234,6 @@ fn trace_image(image_params: ImageParameters) -> Vec<u8> {
             // Trace the ray, compute a colour, store in buffer
             let result = trace(camera_position, ray_direction, image_params.max_steps, image_params.min_distance, DEFAULT_NORMAL_SAMPLING_DISTANCE);
 
-            let light = DEFAULT_LIGHT;
             buffer.push((result.0) as u8);
             buffer.push((result.1) as u8);
             buffer.push((result.2) as u8);
@@ -285,26 +284,7 @@ fn trace(from: Vec3, direction: Vec3, max_steps: i16, min_distance: f32, normal_
             let lambertian = normal.dot(light_direction);
 
             if lambertian > 0.0 {
-                // Phong shading
-                let direction = direction.normalize();
-                let reflected_ray = light_direction - (2.0 * light_direction.dot(normal) * normal);
-                
-                let diffuse_angle = light_direction.dot(normal).clamp(0.0, 1.0);
-                let diffuse_intensity = diffuse_angle * light.diffuse_power;
-
-                let specular_angle = reflected_ray.dot(direction).clamp(0.0, 1.0);
-                let specular_intensity = specular_angle.powf(10.0) * light.specular_power;
-
-                // Fog
-                let fog = -step as f32 / max_steps as f32;
-
-                // 
-
-                return (
-                    fog + (diffuse_intensity * light.diffuse_colour.0 as f32 + specular_intensity * light.specular_colour.0 as f32) / light_distance,
-                    fog + (diffuse_intensity * light.diffuse_colour.1 as f32 + specular_intensity * light.specular_colour.1 as f32) / light_distance,
-                    fog + (diffuse_intensity * light.diffuse_colour.2 as f32 + specular_intensity * light.specular_colour.2 as f32) / light_distance,
-                );
+                return blinn_phong_shading(direction, light, light_direction, light_distance, normal, lambertian, step, max_steps);
             } else {
                 return (0.0, 0.0, 0.0);
             }
@@ -313,6 +293,44 @@ fn trace(from: Vec3, direction: Vec3, max_steps: i16, min_distance: f32, normal_
     }
 
     return (0.0, 0.0, 0.0);
+}
+
+fn phong_shading(direction: Vec3, light: Light, light_direction: Vec3, light_distance: f32, normal: Vec3, lambertian: f32, step: i16, max_steps: i16) -> (f32, f32, f32) {
+    let direction = direction.normalize();
+    let reflected_ray = light_direction - (2.0 * light_direction.dot(normal) * normal);
+
+    let diffuse_intensity = lambertian * light.diffuse_power;
+
+    let specular_angle = reflected_ray.dot(direction).clamp(0.0, 1.0);
+    let specular_intensity = specular_angle.powf(10.0) * light.specular_power;
+
+    // Fog
+    let fog = -step as f32 / max_steps as f32;
+
+    return (
+        fog + (diffuse_intensity * light.diffuse_colour.0 as f32 + specular_intensity * light.specular_colour.0 as f32) / light_distance,
+        fog + (diffuse_intensity * light.diffuse_colour.1 as f32 + specular_intensity * light.specular_colour.1 as f32) / light_distance,
+        fog + (diffuse_intensity * light.diffuse_colour.2 as f32 + specular_intensity * light.specular_colour.2 as f32) / light_distance,
+    );
+}
+
+fn blinn_phong_shading(direction: Vec3, light: Light, light_direction: Vec3, light_distance: f32, normal: Vec3, lambertian: f32, step: i16, max_steps: i16) -> (f32, f32, f32) {
+    let diffuse_intensity = lambertian * light.diffuse_power;
+
+    let direction = direction.normalize();
+    let half_direction = (light_direction - direction).normalize();
+
+    let specular_angle = half_direction.dot(normal).max(0.0);
+    let specular_intensity = specular_angle.powf(4.0 * 10.0) * light.specular_power;
+
+    // Fog
+    let fog = -step as f32 / max_steps as f32;
+
+    return (
+        fog + (diffuse_intensity * light.diffuse_colour.0 as f32 + specular_intensity * light.specular_colour.0 as f32) / light_distance,
+        fog + (diffuse_intensity * light.diffuse_colour.1 as f32 + specular_intensity * light.specular_colour.1 as f32) / light_distance,
+        fog + (diffuse_intensity * light.diffuse_colour.2 as f32 + specular_intensity * light.specular_colour.2 as f32) / light_distance,
+    );
 }
 
 fn sierpinsky_sdf(point: Vec3) -> f32 {
