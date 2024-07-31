@@ -41,7 +41,7 @@ struct ImageParameters {
     camera_direction: Vec3,
     max_steps: i16,
     min_distance: f32,
-    light: Light
+    light: Light,
 }
 
 impl Default for ImageParameters {
@@ -53,28 +53,28 @@ impl Default for ImageParameters {
             camera_direction: DEFAULT_CAMERA_DIRECTION,
             max_steps: DEFAULT_MAX_STEPS,
             min_distance: DEFAULT_MIN_DISTANCE,
-            light: DEFAULT_LIGHT
+            light: DEFAULT_LIGHT,
         }
     }
 }
 
 struct App {
-    state: State
+    state: State,
 }
 
 #[derive(Default, Clone)]
 struct State {
     params: ImageParameters,
-    pixels: Vec<u8>
+    pixels: Vec<u8>,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
     RenderImage,
-    
+
     ImageWidthChanged(String),
     ImageHeightChanged(String),
-    
+
     CameraPositionXChanged(String),
     CameraPositionYChanged(String),
     CameraPositionZChanged(String),
@@ -101,12 +101,15 @@ impl Application for App {
     type Theme = Theme;
 
     fn new(_flags: ()) -> (App, Command<Self::Message>) {
-        (App { 
-            state: State {
-                pixels: vec![0; 4 * DEFAULT_IMG_W * DEFAULT_IMG_H],
-                ..State::default()
-            } 
-        }, Command::none())
+        (
+            App {
+                state: State {
+                    pixels: vec![0; 4 * DEFAULT_IMG_W * DEFAULT_IMG_H],
+                    ..State::default()
+                },
+            },
+            Command::none(),
+        )
     }
 
     fn title(&self) -> String {
@@ -122,60 +125,75 @@ impl Application for App {
                     state: State {
                         pixels,
                         ..self.state.clone()
-                    }
+                    },
                 };
-            },
+            }
 
             Message::ImageWidthChanged(new) => {
-                self.state.params.image_width = new.parse().unwrap_or(self.state.params.image_width);
-            },
+                self.state.params.image_width =
+                    new.parse().unwrap_or(self.state.params.image_width);
+            }
             Message::ImageHeightChanged(new) => {
-                self.state.params.image_height = new.parse().unwrap_or(self.state.params.image_height);
-            },
+                self.state.params.image_height =
+                    new.parse().unwrap_or(self.state.params.image_height);
+            }
 
             Message::CameraPositionXChanged(new) => {
-                self.state.params.camera_position.x = new.parse().unwrap_or(self.state.params.camera_position.x);
-            },
+                self.state.params.camera_position.x =
+                    new.parse().unwrap_or(self.state.params.camera_position.x);
+            }
             Message::CameraPositionYChanged(new) => {
-                self.state.params.camera_position.y = new.parse().unwrap_or(self.state.params.camera_position.y);
-            },
+                self.state.params.camera_position.y =
+                    new.parse().unwrap_or(self.state.params.camera_position.y);
+            }
             Message::CameraPositionZChanged(new) => {
-                self.state.params.camera_position.z = new.parse().unwrap_or(self.state.params.camera_position.z);
-            },
+                self.state.params.camera_position.z =
+                    new.parse().unwrap_or(self.state.params.camera_position.z);
+            }
 
             Message::CameraDirectionXChanged(new) => {
-                self.state.params.camera_direction.x = new.parse().unwrap_or(self.state.params.camera_direction.x);
-            },
+                self.state.params.camera_direction.x =
+                    new.parse().unwrap_or(self.state.params.camera_direction.x);
+            }
             Message::CameraDirectionYChanged(new) => {
-                self.state.params.camera_direction.y = new.parse().unwrap_or(self.state.params.camera_direction.y);
-            },
+                self.state.params.camera_direction.y =
+                    new.parse().unwrap_or(self.state.params.camera_direction.y);
+            }
             Message::CameraDirectionZChanged(new) => {
-                self.state.params.camera_direction.z = new.parse().unwrap_or(self.state.params.camera_direction.z);
-            },
+                self.state.params.camera_direction.z =
+                    new.parse().unwrap_or(self.state.params.camera_direction.z);
+            }
 
             Message::MaxStepsChanged(new) => {
                 self.state.params.max_steps = new.parse().unwrap_or(self.state.params.max_steps);
-            },
+            }
             Message::MinDistanceChanged(new) => {
-                self.state.params.min_distance = new.parse().unwrap_or(self.state.params.min_distance);
-            },
+                self.state.params.min_distance =
+                    new.parse().unwrap_or(self.state.params.min_distance);
+            }
 
             Message::LightPositionXChanged(new) => {
-                self.state.params.light.position.x = new.parse().unwrap_or(self.state.params.light.position.x);
-            },
+                self.state.params.light.position.x =
+                    new.parse().unwrap_or(self.state.params.light.position.x);
+            }
             Message::LightPositionYChanged(new) => {
-                self.state.params.light.position.y = new.parse().unwrap_or(self.state.params.light.position.y);
-            },
+                self.state.params.light.position.y =
+                    new.parse().unwrap_or(self.state.params.light.position.y);
+            }
             Message::LightPositionZChanged(new) => {
-                self.state.params.light.position.z = new.parse().unwrap_or(self.state.params.light.position.z);
-            },
+                self.state.params.light.position.z =
+                    new.parse().unwrap_or(self.state.params.light.position.z);
+            }
 
             Message::LightDiffusePowerChanged(new) => {
-                self.state.params.light.diffuse_power = new.parse().unwrap_or(self.state.params.light.diffuse_power);
-            },
+                self.state.params.light.diffuse_power =
+                    new.parse().unwrap_or(self.state.params.light.diffuse_power);
+            }
             Message::LightSpecularPowerChanged(new) => {
-                self.state.params.light.specular_power = new.parse().unwrap_or(self.state.params.light.specular_power);
-            },
+                self.state.params.light.specular_power = new
+                    .parse()
+                    .unwrap_or(self.state.params.light.specular_power);
+            }
         }
 
         Command::none()
@@ -188,7 +206,7 @@ impl Application for App {
         let handle = image::Handle::from_pixels(
             image_width as u32,
             image_height as u32,
-            self.state.pixels.clone()
+            self.state.pixels.clone(),
         );
 
         let ImageParameters {
@@ -198,45 +216,72 @@ impl Application for App {
             camera_position,
             max_steps,
             min_distance,
-            light
+            light,
         } = &self.state.params;
 
         column![
             row![
                 text("Image Dimensions"),
-                text_input("Width", image_width.to_string().as_str()).on_input(|new| { Message::ImageWidthChanged(new) }),
-                text_input("Height", image_height.to_string().as_str()).on_input(|new| { Message::ImageHeightChanged(new) }),
-            ].spacing(20).padding(5),
+                text_input("Width", image_width.to_string().as_str())
+                    .on_input(|new| { Message::ImageWidthChanged(new) }),
+                text_input("Height", image_height.to_string().as_str())
+                    .on_input(|new| { Message::ImageHeightChanged(new) }),
+            ]
+            .spacing(20)
+            .padding(5),
             row![
                 text("Max steps"),
-                text_input("Max steps", max_steps.to_string().as_str()).on_input(|new| { Message::MaxStepsChanged(new) }),
+                text_input("Max steps", max_steps.to_string().as_str())
+                    .on_input(|new| { Message::MaxStepsChanged(new) }),
                 text("Min distance"),
-                text_input("Min distance", min_distance.to_string().as_str()).on_input(|new| { Message::MinDistanceChanged(new) }),
-            ].spacing(20).padding(5),
+                text_input("Min distance", min_distance.to_string().as_str())
+                    .on_input(|new| { Message::MinDistanceChanged(new) }),
+            ]
+            .spacing(20)
+            .padding(5),
             row![
                 text("Camera Position"),
-                text_input("X", camera_position.x.to_string().as_str()).on_input(|new| { Message::CameraPositionXChanged(new) }),
-                text_input("Y", camera_position.y.to_string().as_str()).on_input(|new| { Message::CameraPositionYChanged(new) }),
-                text_input("Z", camera_position.z.to_string().as_str()).on_input(|new| { Message::CameraPositionZChanged(new) }),
-            ].spacing(20).padding(5),
+                text_input("X", camera_position.x.to_string().as_str())
+                    .on_input(|new| { Message::CameraPositionXChanged(new) }),
+                text_input("Y", camera_position.y.to_string().as_str())
+                    .on_input(|new| { Message::CameraPositionYChanged(new) }),
+                text_input("Z", camera_position.z.to_string().as_str())
+                    .on_input(|new| { Message::CameraPositionZChanged(new) }),
+            ]
+            .spacing(20)
+            .padding(5),
             row![
                 text("Camera Direction"),
-                text_input("X", camera_direction.x.to_string().as_str()).on_input(|new| { Message::CameraDirectionXChanged(new) }),
-                text_input("Y", camera_direction.y.to_string().as_str()).on_input(|new| { Message::CameraDirectionYChanged(new) }),
-                text_input("Z", camera_direction.z.to_string().as_str()).on_input(|new| { Message::CameraDirectionZChanged(new) }),
-            ].spacing(20).padding(5),
+                text_input("X", camera_direction.x.to_string().as_str())
+                    .on_input(|new| { Message::CameraDirectionXChanged(new) }),
+                text_input("Y", camera_direction.y.to_string().as_str())
+                    .on_input(|new| { Message::CameraDirectionYChanged(new) }),
+                text_input("Z", camera_direction.z.to_string().as_str())
+                    .on_input(|new| { Message::CameraDirectionZChanged(new) }),
+            ]
+            .spacing(20)
+            .padding(5),
             row![
                 text("Light Position"),
-                text_input("X", light.position.x.to_string().as_str()).on_input(|new| { Message::LightPositionXChanged(new) }),
-                text_input("Y", light.position.y.to_string().as_str()).on_input(|new| { Message::LightPositionYChanged(new) }),
-                text_input("Z", light.position.z.to_string().as_str()).on_input(|new| { Message::LightPositionZChanged(new) }),
-            ].spacing(20).padding(5),
+                text_input("X", light.position.x.to_string().as_str())
+                    .on_input(|new| { Message::LightPositionXChanged(new) }),
+                text_input("Y", light.position.y.to_string().as_str())
+                    .on_input(|new| { Message::LightPositionYChanged(new) }),
+                text_input("Z", light.position.z.to_string().as_str())
+                    .on_input(|new| { Message::LightPositionZChanged(new) }),
+            ]
+            .spacing(20)
+            .padding(5),
             row![
                 text("Diffuse power"),
-                text_input("Diffuse power", light.diffuse_power.to_string().as_str()).on_input(|new| { Message::LightDiffusePowerChanged(new) }),
+                text_input("Diffuse power", light.diffuse_power.to_string().as_str())
+                    .on_input(|new| { Message::LightDiffusePowerChanged(new) }),
                 text("Specular power"),
-                text_input("Specular power", light.specular_power.to_string().as_str()).on_input(|new| { Message::LightSpecularPowerChanged(new) }),
-            ].spacing(20).padding(5),
+                text_input("Specular power", light.specular_power.to_string().as_str())
+                    .on_input(|new| { Message::LightSpecularPowerChanged(new) }),
+            ]
+            .spacing(20)
+            .padding(5),
             button("Render").on_press(Message::RenderImage),
             image::viewer(handle),
         ]
@@ -273,7 +318,14 @@ fn trace_image(image_params: ImageParameters) -> Vec<u8> {
             let ray_direction = camera_direction + (x * uv_x) + (y * uv_y);
 
             // Trace the ray, compute a colour, store in buffer
-            let result = trace(camera_position, ray_direction, image_params.max_steps, image_params.min_distance, DEFAULT_NORMAL_SAMPLING_DISTANCE, light.clone());
+            let result = trace(
+                camera_position,
+                ray_direction,
+                image_params.max_steps,
+                image_params.min_distance,
+                DEFAULT_NORMAL_SAMPLING_DISTANCE,
+                light.clone(),
+            );
 
             buffer.push((result.0) as u8);
             buffer.push((result.1) as u8);
@@ -291,7 +343,14 @@ fn trace_image(image_params: ImageParameters) -> Vec<u8> {
     return buffer;
 }
 
-fn trace(from: Vec3, direction: Vec3, max_steps: i16, min_distance: f32, normal_sampling_distance: f32, light: Light) -> (f32, f32, f32) {
+fn trace(
+    from: Vec3,
+    direction: Vec3,
+    max_steps: i16,
+    min_distance: f32,
+    normal_sampling_distance: f32,
+    light: Light,
+) -> (f32, f32, f32) {
     let sdf = mandelbox_sdf;
     let mut total_distance: f32 = 0.0;
 
@@ -299,7 +358,9 @@ fn trace(from: Vec3, direction: Vec3, max_steps: i16, min_distance: f32, normal_
         let current_point: Vec3 = from + (total_distance * direction);
         let distance = sdf(current_point);
 
-        if distance > DEFAULT_MAX_DISTANCE { break; }
+        if distance > DEFAULT_MAX_DISTANCE {
+            break;
+        }
 
         total_distance += distance;
 
@@ -319,14 +380,24 @@ fn trace(from: Vec3, direction: Vec3, max_steps: i16, min_distance: f32, normal_
                 sdf(current_point + dx) - sdf(current_point - dx),
                 sdf(current_point + dy) - sdf(current_point - dy),
                 sdf(current_point + dz) - sdf(current_point - dz),
-            ).normalize();
+            )
+            .normalize();
 
             // Find Lambertian reflectance
             let lambertian = normal.dot(light_direction);
 
             if lambertian > 0.0 {
                 // return flat_shading(step, max_steps);
-                return blinn_phong_shading(direction, light, light_direction, light_distance, normal, lambertian, step, max_steps);
+                return blinn_phong_shading(
+                    direction,
+                    light,
+                    light_direction,
+                    light_distance,
+                    normal,
+                    lambertian,
+                    step,
+                    max_steps,
+                );
             } else {
                 return (0.0, 0.0, 0.0);
             }
@@ -341,14 +412,19 @@ fn flat_shading(step: i16, max_steps: i16) -> (f32, f32, f32) {
     // Fog
     let fog = -step as f32 / max_steps as f32;
 
-    return (
-        fog,
-        fog,
-        fog,
-    );
+    return (fog, fog, fog);
 }
 
-fn phong_shading(direction: Vec3, light: Light, light_direction: Vec3, light_distance: f32, normal: Vec3, lambertian: f32, step: i16, max_steps: i16) -> (f32, f32, f32) {
+fn phong_shading(
+    direction: Vec3,
+    light: Light,
+    light_direction: Vec3,
+    light_distance: f32,
+    normal: Vec3,
+    lambertian: f32,
+    step: i16,
+    max_steps: i16,
+) -> (f32, f32, f32) {
     let direction = direction.normalize();
     let reflected_ray = light_direction - (2.0 * light_direction.dot(normal) * normal);
 
@@ -361,13 +437,28 @@ fn phong_shading(direction: Vec3, light: Light, light_direction: Vec3, light_dis
     let fog = -step as f32 / max_steps as f32;
 
     return (
-        fog + (diffuse_intensity * light.diffuse_colour.0 as f32 + specular_intensity * light.specular_colour.0 as f32) / light_distance,
-        fog + (diffuse_intensity * light.diffuse_colour.1 as f32 + specular_intensity * light.specular_colour.1 as f32) / light_distance,
-        fog + (diffuse_intensity * light.diffuse_colour.2 as f32 + specular_intensity * light.specular_colour.2 as f32) / light_distance,
+        fog + (diffuse_intensity * light.diffuse_colour.0 as f32
+            + specular_intensity * light.specular_colour.0 as f32)
+            / light_distance,
+        fog + (diffuse_intensity * light.diffuse_colour.1 as f32
+            + specular_intensity * light.specular_colour.1 as f32)
+            / light_distance,
+        fog + (diffuse_intensity * light.diffuse_colour.2 as f32
+            + specular_intensity * light.specular_colour.2 as f32)
+            / light_distance,
     );
 }
 
-fn blinn_phong_shading(direction: Vec3, light: Light, light_direction: Vec3, light_distance: f32, normal: Vec3, lambertian: f32, step: i16, max_steps: i16) -> (f32, f32, f32) {
+fn blinn_phong_shading(
+    direction: Vec3,
+    light: Light,
+    light_direction: Vec3,
+    light_distance: f32,
+    normal: Vec3,
+    lambertian: f32,
+    step: i16,
+    max_steps: i16,
+) -> (f32, f32, f32) {
     let diffuse_intensity = lambertian * light.diffuse_power;
 
     let direction = direction.normalize();
@@ -380,9 +471,15 @@ fn blinn_phong_shading(direction: Vec3, light: Light, light_direction: Vec3, lig
     let fog = -step as f32 / max_steps as f32;
 
     return (
-        fog + (diffuse_intensity * light.diffuse_colour.0 as f32 + specular_intensity * light.specular_colour.0 as f32) / light_distance,
-        fog + (diffuse_intensity * light.diffuse_colour.1 as f32 + specular_intensity * light.specular_colour.1 as f32) / light_distance,
-        fog + (diffuse_intensity * light.diffuse_colour.2 as f32 + specular_intensity * light.specular_colour.2 as f32) / light_distance,
+        fog + (diffuse_intensity * light.diffuse_colour.0 as f32
+            + specular_intensity * light.specular_colour.0 as f32)
+            / light_distance,
+        fog + (diffuse_intensity * light.diffuse_colour.1 as f32
+            + specular_intensity * light.specular_colour.1 as f32)
+            / light_distance,
+        fog + (diffuse_intensity * light.diffuse_colour.2 as f32
+            + specular_intensity * light.specular_colour.2 as f32)
+            / light_distance,
     );
 }
 
@@ -392,11 +489,11 @@ fn sierpinsky_sdf(point: Vec3) -> f32 {
 
     let mut point = point;
 
-    let a1: Vec3 = vec3(1.0,1.0,1.0);
-	let a2: Vec3 = vec3(-1.0,-1.0,1.0);
-	let a3: Vec3 = vec3(1.0,-1.0,-1.0);
-	let a4: Vec3 = vec3(-1.0,1.0,-1.0);
-	let mut c: Vec3;
+    let a1: Vec3 = vec3(1.0, 1.0, 1.0);
+    let a2: Vec3 = vec3(-1.0, -1.0, 1.0);
+    let a3: Vec3 = vec3(1.0, -1.0, -1.0);
+    let a4: Vec3 = vec3(-1.0, 1.0, -1.0);
+    let mut c: Vec3;
 
     let mut d = 0.0;
     let mut dist = 0.0;
@@ -404,7 +501,7 @@ fn sierpinsky_sdf(point: Vec3) -> f32 {
     for step in 0..max_iterations {
         c = a1;
         dist = (point - a1).length();
-        
+
         d = (point - a2).length();
         if d < dist {
             c = a2;
@@ -423,7 +520,7 @@ fn sierpinsky_sdf(point: Vec3) -> f32 {
             dist = d;
         }
 
-        point = scale * point - c*(scale - 1.0);
+        point = scale * point - c * (scale - 1.0);
     }
 
     return point.length() * scale.powf(-max_iterations as f32);
@@ -452,7 +549,7 @@ fn mandelbox_sdf(offset: Vec3) -> f32 {
         point = (scale * point) + offset;
         dr = dr * scale.abs() + 1.0;
     }
-    return point.length()/dr.abs();
+    return point.length() / dr.abs();
 }
 
 fn box_fold(point: Vec3, dr: f32) -> Vec3 {
@@ -466,10 +563,10 @@ fn sphere_fold(point: Vec3, dr: f32) -> (Vec3, f32) {
     let max_radius = 1.0;
 
     if radius < min_radius {
-        let ratio = max_radius/min_radius;
+        let ratio = max_radius / min_radius;
         return (point * ratio, ratio);
     } else if radius < max_radius {
-        let ratio = max_radius/radius;
+        let ratio = max_radius / radius;
         return (point * ratio, ratio);
     } else {
         return (point, dr);
