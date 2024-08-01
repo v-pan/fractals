@@ -432,7 +432,7 @@ fn flat_shading(step: i16, max_steps: i16) -> (f32, f32, f32) {
 }
 
 fn phong_shading(params: ShadingParameters) -> (f32, f32, f32) {
-    let ShadingParameters {
+    let params = ShadingParameters {
         direction,
         light,
         light_direction,
@@ -441,7 +441,7 @@ fn phong_shading(params: ShadingParameters) -> (f32, f32, f32) {
         lambertian,
         step,
         max_steps,
-    } = params;
+    };
 
     let direction = direction.normalize();
     let reflected_ray = light_direction - (2.0 * light_direction.dot(normal) * normal);
@@ -467,18 +467,16 @@ fn phong_shading(params: ShadingParameters) -> (f32, f32, f32) {
     );
 }
 
-fn blinn_phong_shading(params: ShadingParameters) -> (f32, f32, f32) {
-    let ShadingParameters {
-        direction,
-        light,
-        light_direction,
-        light_distance,
-        normal,
-        lambertian,
-        step,
-        max_steps,
-    } = params;
-
+fn blinn_phong_shading(
+    direction: Vec3,
+    light: Light,
+    light_direction: Vec3,
+    light_distance: f32,
+    normal: Vec3,
+    lambertian: f32,
+    step: i16,
+    max_steps: i16,
+) -> (f32, f32, f32) {
     let diffuse_intensity = lambertian * light.diffuse_power;
 
     let direction = direction.normalize();
