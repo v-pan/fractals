@@ -9,7 +9,7 @@ fn main_image(@builtin(global_invocation_id) id: vec3u) {
     // Pixel coordinates (centre of pixel, origin at bottom left)
     let fragCoord = vec2f(f32(id.x) + .5, f32(screen_size.y - id.y) - .5);
 
-    // Normalised pixel coordinates (from 0 to 1)
+    // Normalised pixel coordinates (from -0.5 to 0.5)
     let uv = fragCoord / vec2f(screen_size) - 0.5;
 
     let camera_position = vec3f(-3, 0, 0);
