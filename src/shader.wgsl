@@ -28,15 +28,111 @@ fn main_image(@builtin(global_invocation_id) id: vec3u) {
     textureStore(screen, id.xy, trace(camera_position, ray_direction));
 }
 
-const max_steps = 10000;
-const max_distance = 10000.0;
-const min_distance = 0.1;
+fn sphere_sdf(point: vec3f) -> f32 {
+    let x = sign(point.x) * (point.x % 1.0);
+    let y = sign(point.y) * (point.y % 1.0);
 
-const normal_sampling_distance = 0.001;
+    let instance = vec3f(x, y, point.z) - vec3f(0.5);
+
+    return length(instance) - 0.15;
+
+}
+
+fn sierpinsky_sdf(point: vec3f) -> f32 {
+    let max_iterations = 3;
+    let scale = 0.5;
+
+    var p = point;
+
+    let a1 = vec3f(1.0, 1.0, 1.0);
+    let a2 = vec3f(-1.0, -1.0, 1.0);
+    let a3 = vec3f(1.0, -1.0, -1.0);
+    let a4 = vec3f(-1.0, 1.0, -1.0);
+    var c = vec3f();
+    var d = 0.0;
+
+    var dist = 0.0;
+
+    for (var steps = 0; steps < max_iterations; steps++) {
+        c = a1;
+        dist = length(p - a1);
+
+        d = length(p - a2);
+        if d < dist {
+            c = a2;
+            dist = d;
+        }
+
+        d = length(p - a3);
+        if d < dist {
+            c = a3;
+            dist = d;
+        }
+
+        d = length(p - a4);
+        if d < dist {
+            c = a4;
+            dist = d;
+        }
+
+        p = scale * p - c * (scale - 1.0);
+    }
+
+    return length(p) * pow(scale, f32(-max_iterations));
+}
+
+fn box_fold(point: vec3f, dr: f32) -> vec3f {
+    let fold_limit = 1.0;
+    return (2.0 * clamp(point, vec3f(-fold_limit), vec3f(fold_limit))) - point;
+}
+
+fn sphere_fold(point: vec3f, dr: f32) -> vec4f {
+    let radius = length(point);
+    let min_radius = 0.1;
+    let max_radius = 1.0;
+
+    if radius < min_radius {
+        let ratio = max_radius / min_radius;
+        let coords = point * ratio;
+        return vec4f(coords.x, coords.y, coords.z, ratio);
+    } else if radius < max_radius {
+        let ratio = max_radius / radius;
+        let coords = point * ratio;
+        return vec4f(coords.x, coords.y, coords.z, ratio);
+    } else {
+        return vec4f(point.x, point.y, point.z, dr);
+    }
+}
+
+fn mandelbox_sdf(point: vec3f) -> f32 {
+    let max_iterations = 39;
+    let scale = 3.0;
+
+    var p = point;
+    var dr: f32 = 1.0;
+
+    for (var steps = 0; steps < max_iterations; steps++) {
+        p = box_fold(p, dr);
+
+        let fold = sphere_fold(p, dr);
+        p = fold.xyz;
+        dr = fold.w;
+
+        p = (scale * p) + point;
+        dr = dr * abs(scale) + 1.0;
+    }
+    return length(p) / abs(dr);
+}
 
 fn sdf(point: vec3f) -> f32 {
-    return length(point) - 1;
+    return sphere_sdf(point);
 }
+
+const max_steps = 1000;
+const max_distance = 1000.0;
+const min_distance = 0.000001;
+
+const normal_sampling_distance = 0.000001;
 
 fn trace(src: vec3f, direction: vec3f) -> vec4f {
     var total_distance: f32 = 0.0;
