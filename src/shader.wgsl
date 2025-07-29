@@ -22,7 +22,7 @@ fn main_image(@builtin(global_invocation_id) id: vec3u) {
     let image_height: f32 = f32(screen_size.y);
     let aspect_ratio: f32 = image_width / image_height;
 
-    let ray_direction = camera_direction + (uv.x * cam_x * aspect_ratio) + (uv.y * cam_y);
+    let ray_direction = normalize(camera_direction + (uv.x * cam_x * aspect_ratio) + (uv.y * cam_y));
 
     // Output to screen
     textureStore(screen, id.xy, trace(camera_position, ray_direction));
