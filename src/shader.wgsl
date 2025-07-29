@@ -1,3 +1,27 @@
+// Camera params
+// TODO: Feed in through a uniform buffer
+const camera_position = vec3f(-4, 1, 1);
+const camera_direction = vec3f(1, 0, -0.3);
+
+// Light params
+// TODO: Feed in through a uniform buffer
+const light_position = vec3f(-4, 0, 5);
+const light_color = vec3f(1.0);
+const diffuse_power = 20.0;
+const specular_power = 10.0;
+
+const ambient_color = vec3f(0.1);
+
+// Material params
+// TODO: Feed in through a uniform buffer
+const diffuse_color = vec3f(0.5);
+const specular_color = vec3f(1.0);
+const shininess = 1.0;
+
+// Screen params
+// TODO: Feed in through a uniform buffer
+const gamma = 2.2; // sRGB
+
 @compute @workgroup_size(16, 16)
 fn main_image(@builtin(global_invocation_id) id: vec3u) {
     // Viewport resolution (in pixels)
@@ -12,15 +36,10 @@ fn main_image(@builtin(global_invocation_id) id: vec3u) {
     // Normalised pixel coordinates (from -0.5 to 0.5)
     let uv = fragCoord / vec2f(screen_size) - 0.5;
 
-    let camera_position = vec3f(-3, 0, 0);
-    let camera_direction = vec3f(1, 0, 0);
-
     let cam_x = cross(normalize(camera_direction), vec3f(0,0,1));
     let cam_y = cross(cam_x, normalize(camera_direction));
 
-    let image_width: f32 = f32(screen_size.x);
-    let image_height: f32 = f32(screen_size.y);
-    let aspect_ratio: f32 = image_width / image_height;
+    let aspect_ratio = f32(screen_size.x) / f32(screen_size.y);
 
     let ray_direction = normalize(camera_direction + (uv.x * cam_x * aspect_ratio) + (uv.y * cam_y));
 
@@ -137,17 +156,18 @@ const normal_sampling_distance = 0.000001;
 fn trace(src: vec3f, direction: vec3f) -> vec4f {
     var total_distance: f32 = 0.0;
 
-    for(var i = 0; i < max_steps; i++) {
+    for(var steps = 0; steps < max_steps; steps++) {
         let current_point = src + (total_distance * direction);
-        let distance = sdf(current_point);
+        let distance_to_surface = sdf(current_point);
 
-        if distance > max_distance {
+        if distance_to_surface > max_distance {
             break;
         }
 
         total_distance += distance;
 
-        if distance < min_distance {
+        var lambertian = 0.0;
+        if distance_to_surface < min_distance {
             // Approximate normal with finite differences
             let dx = normal_sampling_distance * vec3f(1, 0, 0);
             let dy = normal_sampling_distance * vec3f(0, 1, 0);
@@ -158,9 +178,29 @@ fn trace(src: vec3f, direction: vec3f) -> vec4f {
                 sdf(current_point + dz) - sdf(current_point - dz),
             ));
 
-            let lambertian = dot(normal, direction);
-            
-            return vec4f(-lambertian);
+            // Get light vectors
+            var light_direction = light_position - current_point;
+            let light_distance = dot(light_direction, light_direction);
+            light_direction = normalize(light_direction);
+
+            lambertian = max(dot(normal, light_direction), 0.0);
+
+            // Blinn-Phong shading
+            var specular = 0.0;
+            if lambertian != 0 {
+                let halfway = normalize(light_direction + camera_direction);
+                let specular_angle = max(dot(halfway, normal), 0.0);
+                specular = pow(specular_angle, shininess);
+            }
+            // Fog
+            let fog = vec3f(f32(steps) / f32(max_steps));
+
+            // Linear colorspace intensity mix
+            let linear_color = ambient_color +
+                                diffuse_color * lambertian * light_color * diffuse_power / light_distance +
+                                specular_color * specular * light_color * specular_power / light_distance;
+            let gamma_corrected = pow(linear_color, vec3(1.0 / gamma));
+            return vec4f(fog, 1.0);
         }
     }
 
