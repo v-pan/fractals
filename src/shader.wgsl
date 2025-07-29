@@ -31,29 +31,51 @@ fn main_image(@builtin(global_invocation_id) id: vec3u) {
     // Prevent overdraw for workgroups on the edge of the viewport
     if (id.x >= screen_size.x || id.y >= screen_size.y) { return; }
 
-    // Pixel coordinates (centre of pixel, origin at bottom left)
-    let fragCoord = vec2f(f32(id.x) + .5, f32(screen_size.y - id.y) - .5);
-
-    // Jitter rays
-    // TODO: Feed in a low discrepancy noise texture
-    let tex_size = vec2f(textureDimensions(channel0));
-    let tex_uv = fragCoord / tex_size;
-    var noise = textureSampleLevel(channel0, nearest, fract(tex_uv), 0).rgb;
-    // rescale to jitter_strength * [-1, 1]
-    let jitter = jitter_strength * (noise.xy - 0.5);
-
-    // Normalised pixel coordinates (from -0.5 to 0.5)
-    let uv = fragCoord / vec2f(screen_size) - 0.5 + jitter;
-
+    // Get camera basis vectors
     let cam_x = cross(normalize(camera_direction), vec3f(0,0,1));
     let cam_y = cross(cam_x, normalize(camera_direction));
 
     let aspect_ratio = f32(screen_size.x) / f32(screen_size.y);
 
-    let ray_direction = normalize(camera_direction + (uv.x * cam_x * aspect_ratio) + (uv.y * cam_y));
+    // Super sampling
+    let subsamples = 2;
+    var color_acc = vec4f(0.0);
+    for (var i = 0; i < subsamples; i++) {
+        for (var j = 0; j < subsamples; j++) {
+            // Pixel coordinates (centre of pixel, origin at bottom left)
+            var fragCoord = vec2f(f32(id.x) + .5, f32(screen_size.y - id.y) - .5);
 
+            // Subpixel offset
+            let offset = vec2f(f32(i), f32(j)) / f32(subsamples);
+            fragCoord += offset;
+
+            // Normalised pixel coordinates (from -0.5 to 0.5)
+            var uv = fragCoord / vec2f(screen_size) - 0.5;
+
+            // Ray jitter
+            uv += jitter(fragCoord);
+
+            let ray_direction = normalize(camera_direction +
+                                        (uv.x * cam_x * aspect_ratio) +
+                                        (uv.y * cam_y));
+
+            color_acc += trace(camera_position, ray_direction);
+        }
+    }
+
+    // Normalise extra samples
+    color_acc /= f32(subsamples * subsamples);
     // Output to screen
-    textureStore(screen, id.xy, trace(camera_position, ray_direction));
+    textureStore(screen, id.xy, color_acc);
+}
+
+fn jitter(fragCoord: vec2f) -> vec2f {
+    // TODO: Feed in a low discrepancy noise texture
+    let tex_size = vec2f(textureDimensions(channel0));
+    let tex_uv = fragCoord / tex_size;
+    var noise = textureSampleLevel(channel0, nearest, fract(tex_uv), 0).rgb;
+    // rescale to jitter_strength * [-1, 1]
+    return jitter_strength * (noise.xy - 0.5);
 }
 
 fn sphere_sdf(point: vec3f) -> f32 {
