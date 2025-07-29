@@ -2,6 +2,7 @@
 // TODO: Feed in through a uniform buffer
 const camera_position = vec3f(-4, 1, 1);
 const camera_direction = vec3f(1, 0, -0.3);
+const jitter_strength = 0.00005;
 
 // Light params
 // TODO: Feed in through a uniform buffer
@@ -33,8 +34,16 @@ fn main_image(@builtin(global_invocation_id) id: vec3u) {
     // Pixel coordinates (centre of pixel, origin at bottom left)
     let fragCoord = vec2f(f32(id.x) + .5, f32(screen_size.y - id.y) - .5);
 
+    // Jitter rays
+    // TODO: Feed in a low discrepancy noise texture
+    let tex_size = vec2f(textureDimensions(channel0));
+    let tex_uv = fragCoord / tex_size;
+    var noise = textureSampleLevel(channel0, nearest, fract(tex_uv), 0).rgb;
+    // rescale to jitter_strength * [-1, 1]
+    let jitter = jitter_strength * (noise.xy - 0.5);
+
     // Normalised pixel coordinates (from -0.5 to 0.5)
-    let uv = fragCoord / vec2f(screen_size) - 0.5;
+    let uv = fragCoord / vec2f(screen_size) - 0.5 + jitter;
 
     let cam_x = cross(normalize(camera_direction), vec3f(0,0,1));
     let cam_y = cross(cam_x, normalize(camera_direction));
