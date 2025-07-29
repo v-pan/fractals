@@ -164,7 +164,9 @@ fn trace(src: vec3f, direction: vec3f) -> vec4f {
             break;
         }
 
-        total_distance += distance;
+        // Adaptive step size: smaller steps when close to surfaces
+        let step_size = max(distance_to_surface, min_distance * (1.0 + total_distance * 0.01));
+        total_distance += step_size;
 
         var lambertian = 0.0;
         if distance_to_surface < min_distance {
