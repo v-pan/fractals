@@ -1,3 +1,6 @@
+@group(0) @binding(0) var screen: texture_storage_2d<rgba8unorm,write>;
+@group(0) @binding(1) var channel0: texture_2d<f32>;
+
 // Camera params
 // TODO: Feed in through a uniform buffer
 const camera_position = vec3f(-4, 1, 1);
@@ -23,7 +26,7 @@ const shininess = 1.0;
 // TODO: Feed in through a uniform buffer
 const gamma = 2.2; // sRGB
 
-@compute @workgroup_size(16, 16)
+@compute @workgroup_size(8, 8, 1)
 fn main_image(@builtin(global_invocation_id) id: vec3u) {
     // Viewport resolution (in pixels)
     let screen_size = textureDimensions(screen);
@@ -53,7 +56,7 @@ fn main_image(@builtin(global_invocation_id) id: vec3u) {
             var uv = fragCoord / vec2f(screen_size) - 0.5;
 
             // Ray jitter
-            uv += jitter(fragCoord);
+            // uv += jitter(fragCoord);
 
             let ray_direction = normalize(camera_direction +
                                         (uv.x * cam_x * aspect_ratio) +
@@ -69,14 +72,14 @@ fn main_image(@builtin(global_invocation_id) id: vec3u) {
     textureStore(screen, id.xy, color_acc);
 }
 
-fn jitter(fragCoord: vec2f) -> vec2f {
-    // TODO: Feed in a low discrepancy noise texture
-    let tex_size = vec2f(textureDimensions(channel0));
-    let tex_uv = fragCoord / tex_size;
-    var noise = textureSampleLevel(channel0, nearest, fract(tex_uv), 0).rgb;
-    // rescale to jitter_strength * [-1, 1]
-    return jitter_strength * (noise.xy - 0.5);
-}
+// fn jitter(fragCoord: vec2f) -> vec2f {
+//     // TODO: Feed in a low discrepancy noise texture
+//     let tex_size = vec2f(textureDimensions(channel0));
+//     let tex_uv = fragCoord / tex_size;
+//     var noise = textureSampleLevel(channel0, nearest, fract(tex_uv), 0).rgb;
+//     // rescale to jitter_strength * [-1, 1]
+//     return jitter_strength * (noise.xy - 0.5);
+// }
 
 fn sphere_sdf(point: vec3f) -> f32 {
     let x = sign(point.x) * (point.x % 1.0);
@@ -233,7 +236,7 @@ fn trace(src: vec3f, direction: vec3f) -> vec4f {
                                 diffuse_color * lambertian * light_color * diffuse_power / light_distance +
                                 specular_color * specular * light_color * specular_power / light_distance;
             let gamma_corrected = pow(linear_color, vec3(1.0 / gamma));
-            return vec4f(fog, 1.0);
+            return vec4f(linear_color, 1.0);
         }
     }
 
